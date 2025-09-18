@@ -15,11 +15,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AppDispatch, RootState } from '../stores';
-import { registerStart } from '../stores/slices/authSlice';
+import { registerStart, clearJustRegistered } from '../stores/slices/authSlice';
 import { useEffect } from 'react';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  firstName: z.string().min(1, { message: 'First name is required.' }),
+  lastName: z.string().min(1, { message: 'Last name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
@@ -27,11 +28,11 @@ const formSchema = z.object({
 export function RegisterPage() {
   const navigate = useNavigate();
   const dispatch: AppDispatch = useDispatch();
-  const { isLoading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isLoading, error, justRegistered } = useSelector((state: RootState) => state.auth);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { firstName: '', lastName: '', email: '', password: '' },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -39,10 +40,12 @@ export function RegisterPage() {
   }
   
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+    if (justRegistered) {
+      navigate('/login');
+      // clear the flag so subsequent visits don't redirect
+      setTimeout(() => dispatch(clearJustRegistered()), 0);
     }
-  }, [isAuthenticated, navigate]);
+  }, [justRegistered, navigate, dispatch]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -54,19 +57,34 @@ export function RegisterPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" className="h-10" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" className="h-10" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" className="h-10" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="email"

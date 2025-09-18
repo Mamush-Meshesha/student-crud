@@ -13,6 +13,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  justRegistered: boolean;
 }
 
 const token = localStorage.getItem('token');
@@ -23,6 +24,7 @@ const initialState: AuthState = {
   isAuthenticated: !!token,
   isLoading: false,
   error: null,
+  justRegistered: false,
 };
 
 const authSlice = createSlice({
@@ -32,6 +34,7 @@ const authSlice = createSlice({
     loginStart(state, action: PayloadAction<{ email: string; password: string }>) {
       state.isLoading = true;
       state.error = null;
+      state.justRegistered = false;
     },
     loginSuccess(state, action: PayloadAction<{ token: string; user: User }>) {
       localStorage.setItem('token', action.payload.token);
@@ -48,16 +51,21 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.error = action.payload;
     },
-    registerStart(state, action: PayloadAction<{ name: string; email: string; password: string }>) {
+    registerStart(state, action: PayloadAction<{ firstName: string; lastName: string; email: string; password: string }>) {
       state.isLoading = true;
       state.error = null;
+      state.justRegistered = false;
     },
     registerSuccess(state) {
       state.isLoading = false;
+      state.justRegistered = true;
     },
     registerFailure(state, action: PayloadAction<string>) {
       state.isLoading = false;
       state.error = action.payload;
+    },
+    clearJustRegistered(state) {
+      state.justRegistered = false;
     },
     // Logout action
     logout(state) {
@@ -77,6 +85,7 @@ export const {
   registerSuccess,
   registerFailure,
   logout,
+  clearJustRegistered,
 } = authSlice.actions;
 
 export default authSlice.reducer;
