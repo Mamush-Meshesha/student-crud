@@ -1,15 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { call, put, takeLatest } from 'redux-saga/effects';
-import { fetchStudentsSuccess, fetchStudentsFailure, fetchStudentByIdSuccess, fetchStudentByIdFailure, updateStudentSuccess, updateStudentFailure, deleteStudentSuccess, deleteStudentFailure } from '../slices/studentSlice';
-import axios from 'axios';
+import { call, put, takeLatest } from "redux-saga/effects";
+import {
+  fetchStudentsSuccess,
+  fetchStudentsFailure,
+  fetchStudentByIdSuccess,
+  fetchStudentByIdFailure,
+  createStudentSuccess,
+  createStudentFailure,
+  updateStudentSuccess,
+  updateStudentFailure,
+  deleteStudentSuccess,
+  deleteStudentFailure,
+} from "../slices/studentSlice";
+import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function* fetchStudentsSaga(): Generator<any, void, any> {
   try {
     const students = yield call(axios.get, `${API_URL}/api/student`, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       withCredentials: true,
     });
@@ -19,11 +30,12 @@ function* fetchStudentsSaga(): Generator<any, void, any> {
   }
 }
 
-function* fetchStudentByIdSaga(): Generator<any, void, any> {
+function* fetchStudentByIdSaga(action: any): Generator<any, void, any> {
   try {
-    const res = yield call(axios.get, `${API_URL}/api/student/:id`, {
+    const id = action.payload;
+    const res = yield call(axios.get, `${API_URL}/api/student/${id}`, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       withCredentials: true,
     });
@@ -33,51 +45,95 @@ function* fetchStudentByIdSaga(): Generator<any, void, any> {
   }
 }
 
-function* updateStudentSaga(action: any): Generator<any, void, any> {
+function* createStudentSaga(action: any): Generator<any, void, any> {
   try {
-    const res = yield call(axios.put, `${API_URL}/api/student/:id`, action.payload, {
+    const payload = {
+      ...action.payload,
+      // some backends expect 'department' instead of 'major'
+      department: action.payload?.major,
+    };
+    // do not send confirmPassword to student API
+    delete (payload as any).confirmPassword;
+    const res = yield call(axios.post, `${API_URL}/api/student`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
       withCredentials: true,
     });
-    yield put(updateStudentSuccess(res.data));  
-  } catch (error:any) {
+    const created = {
+      ...res.data,
+      // Guarantee major exists in the object sent to the reducer
+      major: res.data?.major ?? res.data?.department ?? payload.department ?? payload.major,
+    };
+    yield put(createStudentSuccess(created));
+  } catch (error: any) {
+    yield put(createStudentFailure(error.message));
+  }
+}
+
+function* updateStudentSaga(action: any): Generator<any, void, any> {
+  try {
+    const { id, data } = action.payload;
+    const payload = {
+      ...data,
+      department: data?.major,
+    };
+    delete (payload as any).confirmPassword;
+    const res = yield call(axios.put, `${API_URL}/api/student/${id}`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    const updated = {
+      ...res.data,
+      major: res.data?.major ?? res.data?.department ?? payload.department ?? payload.major,
+    };
+    yield put(updateStudentSuccess(updated));
+  } catch (error: any) {
     yield put(updateStudentFailure(error.message));
-    
   }
 }
 
 function* deleteStudentSaga(action: any): Generator<any, void, any> {
   try {
-    yield call(axios.delete, `${API_URL}/api/student/:id`, {
+    const id = action.payload;
+    yield call(axios.delete, `${API_URL}/api/student/${id}`, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       withCredentials: true,
     });
-    yield put(deleteStudentSuccess(action.payload)); 
+    yield put(deleteStudentSuccess(id));
   } catch (error: any) {
     yield put(deleteStudentFailure(error.message));
   }
 }
 
-
 function* studentSaga(): Generator<any, void, any> {
-  yield takeLatest('students/fetchStudentsStart', fetchStudentsSaga);
+  yield takeLatest("students/fetchStudentsStart", fetchStudentsSaga);
 }
 
 function* watchFetchStudentById() {
-  yield takeLatest('students/fetchStudentByIdStart', fetchStudentByIdSaga);
+  yield takeLatest("students/fetchStudentByIdStart", fetchStudentByIdSaga);
 }
 
 function* watchUpdateStudent() {
-  yield takeLatest('students/updateStudentStart', updateStudentSaga);
+  yield takeLatest("students/updateStudentStart", updateStudentSaga);
 }
 
 function* watchDeleteStudent() {
-  yield takeLatest('students/deleteStudentStart', deleteStudentSaga);
-} 
+  yield takeLatest("students/deleteStudentStart", deleteStudentSaga);
+}
 
+function* watchCreateStudent() {
+  yield takeLatest("students/createStudentRequest", createStudentSaga);
+}
 
-export { studentSaga, watchFetchStudentById, watchUpdateStudent, watchDeleteStudent };
+export {
+  studentSaga,
+  watchFetchStudentById,
+  watchCreateStudent,
+  watchUpdateStudent,
+  watchDeleteStudent,
+};

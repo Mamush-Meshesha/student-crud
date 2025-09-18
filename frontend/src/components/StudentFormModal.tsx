@@ -73,6 +73,22 @@ export function StudentFormModal() {
     if (!formData.address.city.trim()) errors.city = "City is required";
     if (!formData.address.state.trim()) errors.state = "State is required";
     if (!formData.address.zipCode.trim()) errors.zipCode = "ZIP code is required";
+
+    // Password validation only when creating a new student (registration)
+    if (modalMode === "create") {
+      const pwd = formData.password ?? "";
+      const cpwd = formData.confirmPassword ?? "";
+      if (!pwd.trim()) {
+        errors.password = "Password is required";
+      } else if (pwd.length < 6) {
+        errors.password = "Password must be at least 6 characters";
+      }
+      if (!cpwd.trim()) {
+        errors.confirmPassword = "Please confirm your password";
+      } else if (pwd && cpwd && pwd !== cpwd) {
+        errors.confirmPassword = "Passwords do not match";
+      }
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -206,12 +222,29 @@ export function StudentFormModal() {
                 <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange("email", (e.target as HTMLInputElement).value)} className="h-10" />
                 {formErrors.email && <p className="text-xs text-destructive mt-1">{formErrors.email}</p>}
               </div>
+              {modalMode === "create" && (
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" value={formData.password ?? ""} onChange={(e) => handleInputChange("password", (e.target as HTMLInputElement).value)} className="h-10" />
+                  {formErrors.password && <p className="text-xs text-destructive mt-1">{formErrors.password}</p>}
+                </div>
+              )}
               <div>
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange("phone", (e.target as HTMLInputElement).value)} className="h-10" />
                 {formErrors.phone && <p className="text-xs text-destructive mt-1">{formErrors.phone}</p>}
               </div>
             </div>
+
+            {modalMode === "create" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input id="confirmPassword" type="password" value={formData.confirmPassword ?? ""} onChange={(e) => handleInputChange("confirmPassword", (e.target as HTMLInputElement).value)} className="h-10" />
+                  {formErrors.confirmPassword && <p className="text-xs text-destructive mt-1">{formErrors.confirmPassword}</p>}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

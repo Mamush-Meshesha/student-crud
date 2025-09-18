@@ -63,10 +63,10 @@ export function StudentList() {
 
   const filteredStudents = students.filter((student) => {
     const searchLower = searchTerm.toLowerCase();
-    const firstName = student.firstName.toLowerCase();
-    const lastName = student.lastName.toLowerCase();
-    const email = student.email.toLowerCase();
-    const major = student.major?.toLowerCase() ?? "";
+    const firstName = (student.firstName ?? "").toLowerCase();
+    const lastName = (student.lastName ?? "").toLowerCase();
+    const email = (student.email ?? "").toLowerCase();
+    const major = (student.major ?? "").toLowerCase();
     return (
       firstName.includes(searchLower) ||
       lastName.includes(searchLower) ||
@@ -151,18 +151,18 @@ export function StudentList() {
                       <TableCell className="px-3 py-2 text-muted-foreground">
                         {student.email}
                       </TableCell>
-                      <TableCell className="px-3 py-2">{student.major || "N/A"}</TableCell>
+                      <TableCell className="px-3 py-2">{(student.major ?? "").trim() || "-"}</TableCell>
                       <TableCell className="px-3 py-2">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground/80">
-                          {student.year || "N/A"}
+                          {(student.year ?? "").toString() || "-"}
                         </span>
                       </TableCell>
                       <TableCell className="px-3 py-2 font-mono">
-                        {student.gpa ? student.gpa.toFixed(2) : "N/A"}
+                        {Number.isFinite(student.gpa) ? Number(student.gpa).toFixed(2) : "-"}
                       </TableCell>
                       <TableCell className="px-3 py-2">
                         <Badge variant={getStatusBadgeVariant(student.status)}>
-                          {student.status || "N/A"}
+                          {(student.status ?? "").trim() || "-"}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-3 py-2 text-right">

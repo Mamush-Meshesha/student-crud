@@ -23,7 +23,10 @@ export interface Student {
   address: Address;
 }
 
-export type StudentFormData = Omit<Student, 'id'>;
+export type StudentFormData = Omit<Student, 'id'> & {
+  password?: string;
+  confirmPassword?: string;
+};
 
 interface StudentsState {
   students: Student[];
@@ -43,6 +46,45 @@ const initialState: StudentsState = {
   selectedStudent: null,
 };
 
+// Helper to ensure all required fields exist so UI doesn't show N/A incorrectly
+function normalizeStudent(input: Partial<Student>): Student {
+  // Extract possible major/department field from various backend responses
+  const possibleMajor = (
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).major ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).majorName ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).department ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).departmentName ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).dept ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).program ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).programme ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).fieldOfStudy ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).course ??
+    (input as Partial<Record<'major' | 'majorName' | 'department' | 'departmentName' | 'dept' | 'program' | 'programme' | 'fieldOfStudy' | 'course' | 'specialization', unknown>>).specialization ??
+    ""
+  );
+
+  return {
+    id: String(input.id ?? ""),
+    firstName: (input.firstName ?? "").toString().trim(),
+    lastName: (input.lastName ?? "").toString().trim(),
+    email: (input.email ?? "").toString().trim(),
+    phone: (input.phone ?? "").toString().trim(),
+    dateOfBirth: input.dateOfBirth ?? "",
+    enrollmentDate: input.enrollmentDate ?? "",
+    // Support alternative backend keys for major/department
+    major: String(possibleMajor ?? "").trim(),
+    year: (input.year as Student["year"]) ?? "Freshman",
+    gpa: typeof input.gpa === "number" ? input.gpa : Number(input.gpa ?? 0),
+    status: ((input.status as Student["status"]) ?? "Active") as StudentsState["students"][number]["status"],
+    address: {
+      street: (input.address?.street ?? "").toString().trim(),
+      city: (input.address?.city ?? "").toString().trim(),
+      state: (input.address?.state ?? "").toString().trim(),
+      zipCode: (input.address?.zipCode ?? "").toString().trim(),
+    },
+  };
+}
+
 const studentSlice = createSlice({
   name: 'students',
   initialState,
@@ -52,7 +94,7 @@ const studentSlice = createSlice({
       state.error = null;
     },
     fetchStudentsSuccess(state, action: PayloadAction<Student[]>) {
-      state.students = action.payload;
+      state.students = action.payload.map((s) => normalizeStudent(s));
       state.loading = false;
     },
     fetchStudentsFailure(state, action: PayloadAction<string>) {
@@ -64,7 +106,7 @@ const studentSlice = createSlice({
       state.error = null;
     },
     createStudentSuccess(state, action: PayloadAction<Student>) {
-      state.students.push(action.payload);
+      state.students.push(normalizeStudent(action.payload));
       state.loading = false;
       state.isModalOpen = false;
     },
@@ -85,9 +127,10 @@ const studentSlice = createSlice({
       state.error = action.payload;
     },
     updateStudentSuccess(state, action: PayloadAction<Student>) {
-      const index = state.students.findIndex(s => s.id === action.payload.id);
+      const normalized = normalizeStudent(action.payload);
+      const index = state.students.findIndex(s => s.id === normalized.id);
       if (index !== -1) {
-        state.students[index] = action.payload;
+        state.students[index] = normalized;
       }
       state.loading = false;
       state.isModalOpen = false;
