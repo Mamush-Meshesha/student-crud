@@ -40,10 +40,10 @@ import { RegisterUserSchema } from "../utils/zod.js"; // the schema above
 
     const newAddress = await prisma.address.create({
       data: {
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        zipCode: address.zipCode,
+        street: address?.street,
+        city: address?.city,
+        state: address?.state,
+        zipCode: address?.zipCode,
       },
     });
 
