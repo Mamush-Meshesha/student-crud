@@ -1,7 +1,11 @@
 :root {
-  --spacing: 1rem; /* default spacing for Shadcn UI */
+  /* In Tailwind v4, the spacing scale is based on a base unit (default 0.25rem).
+     Setting this to 1rem scales all spacing 4x and makes components huge.
+     Use 0.25rem to keep shadcn/ui components at normal size. */
+  --spacing: 0.25rem;
 }
 @import "tailwindcss";
+
 
 
 @import "tw-animate-css";
