@@ -13,6 +13,7 @@ import {
   deleteStudentFailure,
 } from "../slices/studentSlice";
 import axios from "axios";
+import { registerFailure, registerSuccess } from "../slices/authSlice";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -49,24 +50,26 @@ function* createStudentSaga(action: any): Generator<any, void, any> {
   try {
     const payload = {
       ...action.payload,
-      // some backends expect 'department' instead of 'major'
-      department: action.payload?.major,
+      department: action.payload?.major ?? action.payload?.department,
     };
-    // do not send confirmPassword to student API
-    delete (payload as any).confirmPassword;
-    const res = yield call(axios.post, `${API_URL}/api/student`, payload, {
+    const res = yield call(axios.post, `${API_URL}/api/auth/register`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
       withCredentials: true,
     });
+
+    yield put(registerSuccess(res.data));
+
+    const server = res.data as any;
     const created = {
-      ...res.data,
-      // Guarantee major exists in the object sent to the reducer
-      major: res.data?.major ?? res.data?.department ?? payload.department ?? payload.major,
+      id: server?.id ?? server?.user?.id ?? String(Date.now()),
+      ...action.payload,
+      major: action.payload?.major ?? server?.major ?? server?.department ?? payload?.department ?? '',
     };
     yield put(createStudentSuccess(created));
   } catch (error: any) {
+    yield put(registerFailure(error.message));
     yield put(createStudentFailure(error.message));
   }
 }
@@ -74,11 +77,14 @@ function* createStudentSaga(action: any): Generator<any, void, any> {
 function* updateStudentSaga(action: any): Generator<any, void, any> {
   try {
     const { id, data } = action.payload;
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...data,
       department: data?.major,
     };
     delete (payload as any).confirmPassword;
+    if (!data?.password) {
+      delete (payload as any).password;
+    }
     const res = yield call(axios.put, `${API_URL}/api/student/${id}`, payload, {
       headers: {
         'Content-Type': 'application/json',

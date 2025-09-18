@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import type React from "react";
@@ -37,11 +38,27 @@ export function StudentFormModal() {
 
   useEffect(() => {
     if (selectedStudent && (modalMode === "edit" || modalMode === "view")) {
-      setFormData({
+      const normalized = {
+        ...initialFormData,
         ...selectedStudent,
-        dateOfBirth: selectedStudent.dateOfBirth?.split("T")[0] ?? "",
-        enrollmentDate: selectedStudent.enrollmentDate?.split("T")[0] ?? "",
-      });
+        firstName: selectedStudent.firstName ?? "",
+        lastName: selectedStudent.lastName ?? "",
+        email: selectedStudent.email ?? "",
+        phone: selectedStudent.phone ?? "",
+        major: selectedStudent.major ?? (selectedStudent as any).department ?? "",
+        year: (selectedStudent.year as typeof initialFormData.year) ?? initialFormData.year,
+        gpa: typeof selectedStudent.gpa === "number" ? selectedStudent.gpa : Number(selectedStudent.gpa ?? 0),
+        status: (selectedStudent.status as typeof initialFormData.status) ?? initialFormData.status,
+        dateOfBirth: selectedStudent.dateOfBirth?.split("T")[0] ?? (selectedStudent.dateOfBirth || ""),
+        enrollmentDate: selectedStudent.enrollmentDate?.split("T")[0] ?? (selectedStudent.enrollmentDate || ""),
+        address: {
+          street: selectedStudent.address?.street ?? "",
+          city: selectedStudent.address?.city ?? "",
+          state: selectedStudent.address?.state ?? "",
+          zipCode: selectedStudent.address?.zipCode ?? "",
+        },
+      } as StudentFormData;
+      setFormData(normalized);
     } else {
       setFormData(initialFormData);
     }
@@ -74,10 +91,11 @@ export function StudentFormModal() {
     if (!formData.address.state.trim()) errors.state = "State is required";
     if (!formData.address.zipCode.trim()) errors.zipCode = "ZIP code is required";
 
-    // Password validation only when creating a new student (registration)
+    // Password validation
+    const pwd = formData.password ?? "";
+    const cpwd = formData.confirmPassword ?? "";
     if (modalMode === "create") {
-      const pwd = formData.password ?? "";
-      const cpwd = formData.confirmPassword ?? "";
+      // Required when creating
       if (!pwd.trim()) {
         errors.password = "Password is required";
       } else if (pwd.length < 6) {
@@ -87,6 +105,18 @@ export function StudentFormModal() {
         errors.confirmPassword = "Please confirm your password";
       } else if (pwd && cpwd && pwd !== cpwd) {
         errors.confirmPassword = "Passwords do not match";
+      }
+    } else if (modalMode === "edit") {
+      // Optional on edit; validate only if provided
+      if (pwd && pwd.length < 6) {
+        errors.password = "Password must be at least 6 characters";
+      }
+      if (pwd || cpwd) {
+        if (!cpwd.trim()) {
+          errors.confirmPassword = "Please confirm your password";
+        } else if (pwd !== cpwd) {
+          errors.confirmPassword = "Passwords do not match";
+        }
       }
     }
     setFormErrors(errors);
@@ -222,13 +252,11 @@ export function StudentFormModal() {
                 <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange("email", (e.target as HTMLInputElement).value)} className="h-10" />
                 {formErrors.email && <p className="text-xs text-destructive mt-1">{formErrors.email}</p>}
               </div>
-              {modalMode === "create" && (
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" value={formData.password ?? ""} onChange={(e) => handleInputChange("password", (e.target as HTMLInputElement).value)} className="h-10" />
-                  {formErrors.password && <p className="text-xs text-destructive mt-1">{formErrors.password}</p>}
-                </div>
-              )}
+              <div>
+                <Label htmlFor="password">Password {modalMode === "create" ? <span className="text-muted-foreground text-xs">(required)</span> : <span className="text-muted-foreground text-xs">(optional)</span>}</Label>
+                <Input id="password" type="password" value={formData.password ?? ""} onChange={(e) => handleInputChange("password", (e.target as HTMLInputElement).value)} className="h-10" />
+                {formErrors.password && <p className="text-xs text-destructive mt-1">{formErrors.password}</p>}
+              </div>
               <div>
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange("phone", (e.target as HTMLInputElement).value)} className="h-10" />
@@ -236,15 +264,13 @@ export function StudentFormModal() {
               </div>
             </div>
 
-            {modalMode === "create" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input id="confirmPassword" type="password" value={formData.confirmPassword ?? ""} onChange={(e) => handleInputChange("confirmPassword", (e.target as HTMLInputElement).value)} className="h-10" />
-                  {formErrors.confirmPassword && <p className="text-xs text-destructive mt-1">{formErrors.confirmPassword}</p>}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="confirmPassword">Confirm Password {modalMode === "create" ? <span className="text-muted-foreground text-xs">(required)</span> : <span className="text-muted-foreground text-xs">(optional)</span>}</Label>
+                <Input id="confirmPassword" type="password" value={formData.confirmPassword ?? ""} onChange={(e) => handleInputChange("confirmPassword", (e.target as HTMLInputElement).value)} className="h-10" />
+                {formErrors.confirmPassword && <p className="text-xs text-destructive mt-1">{formErrors.confirmPassword}</p>}
               </div>
-            )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
