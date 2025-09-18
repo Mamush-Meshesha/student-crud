@@ -21,6 +21,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      "https://student-crud-two.vercel.app"
 
     ],
     credentials: true,
