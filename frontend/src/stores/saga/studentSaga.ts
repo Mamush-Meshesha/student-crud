@@ -48,9 +48,22 @@ function* fetchStudentByIdSaga(action: any): Generator<any, void, any> {
 
 function* createStudentSaga(action: any): Generator<any, void, any> {
   try {
+    // Mirror the auth register flow as requested
+    const birthISO = action.payload?.dateOfBirth
+      ? new Date(`${action.payload.dateOfBirth}T00:00:00Z`).toISOString()
+      : undefined;
     const payload = {
       ...action.payload,
+      // map to backend names
+      academicYear: action.payload?.year,
+      birthDate: birthISO,
+      // Some backends accept department instead of major; include both
       department: action.payload?.major ?? action.payload?.department,
+      major: action.payload?.major,
+      phone: action.payload?.phone,
+      address: action.payload?.address,
+      gpa: action.payload?.gpa,
+      status: action.payload?.status,
     };
     const res = yield call(axios.post, `${API_URL}/api/auth/register`, payload, {
       headers: {
@@ -61,6 +74,7 @@ function* createStudentSaga(action: any): Generator<any, void, any> {
 
     yield put(registerSuccess(res.data));
 
+    // Also push into students store so list updates immediately
     const server = res.data as any;
     const created = {
       id: server?.id ?? server?.user?.id ?? String(Date.now()),
@@ -68,6 +82,15 @@ function* createStudentSaga(action: any): Generator<any, void, any> {
       major: action.payload?.major ?? server?.major ?? server?.department ?? payload?.department ?? '',
     };
     yield put(createStudentSuccess(created));
+
+    // Persist profile fields (e.g., major) if register endpoint didn't save them
+    const studentId = server?.user?.id ?? server?.id;
+    if (studentId) {
+      yield put({
+        type: 'students/updateStudentRequest',
+        payload: { id: String(studentId), data: action.payload },
+      });
+    }
   } catch (error: any) {
     yield put(registerFailure(error.message));
     yield put(createStudentFailure(error.message));
@@ -77,9 +100,20 @@ function* createStudentSaga(action: any): Generator<any, void, any> {
 function* updateStudentSaga(action: any): Generator<any, void, any> {
   try {
     const { id, data } = action.payload;
+    const birthISO = (data as any)?.dateOfBirth
+      ? new Date(`${(data as any).dateOfBirth}T00:00:00Z`).toISOString()
+      : undefined;
     const payload: Record<string, unknown> = {
       ...data,
+      // map to backend names
+      academicYear: (data as any)?.year,
+      birthDate: birthISO,
       department: data?.major,
+      major: data?.major,
+      phone: data?.phone,
+      address: (data as any)?.address,
+      gpa: data?.gpa,
+      status: data?.status,
     };
     delete (payload as any).confirmPassword;
     if (!data?.password) {
@@ -125,7 +159,8 @@ function* watchFetchStudentById() {
 }
 
 function* watchUpdateStudent() {
-  yield takeLatest("students/updateStudentStart", updateStudentSaga);
+  // Match the action defined in slice: updateStudentRequest
+  yield takeLatest("students/updateStudentRequest", updateStudentSaga);
 }
 
 function* watchDeleteStudent() {
