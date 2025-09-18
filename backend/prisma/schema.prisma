@@ -32,9 +32,9 @@ model Student {
 
 model Address {
   id       Int       @id @default(autoincrement())
-  street   String
-  city     String
-  state    String
-  zipCode  String
+  street   String?
+  city     String?
+  state    String?
+  zipCode  String?
   students Student[]
 }

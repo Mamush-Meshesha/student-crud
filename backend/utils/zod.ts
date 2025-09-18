@@ -10,7 +10,7 @@ export const RegisterUserSchema = z.object({
     city: z.string().min(1),
     state: z.string().min(1),
     zipCode: z.string().min(1),
-  }),
+  }).optional(),
   birthDate: z.string().datetime().optional(),
   academicYear: z.string().optional(),
   gpa: z.number().optional(),
